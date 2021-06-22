@@ -4,9 +4,15 @@ import jsonInterface from "./jsonInterface.json";
 
 class Vote extends Component {
 
-    // Variable ethereum
-    // Note : Ne doit pas faire partie du "State React" car il pourrait perturber le cycle de vie du composant React
+    /**
+     * Ethereum Object
+     */
     ethereum;
+
+    /**
+     * Instance Contract Solidity
+     */
+    contract;
 
     /**
      * Constructeur
@@ -14,6 +20,7 @@ class Vote extends Component {
      */
     constructor(props) {
         super(props);
+
         this.state = {
             isConnected: {
                 web3: false,
@@ -22,13 +29,14 @@ class Vote extends Component {
             question: null,
             answerChoices: [],
         };
+
         this.ethereum = window.ethereum;
     }
 
     /**
      * Initialisation du "Circle Life" de notre connexion Web3JS
      */
-    initEthereum = () => {
+    initEthereumEvents = () => {
         this.ethereum.on('accountsChanged', (accounts) => {
             console.log("accountsChanged accounts", accounts, this.ethereum.isConnected());
             if (this.ethereum.isConnected()) {
@@ -39,6 +47,19 @@ class Vote extends Component {
             console.log("disconnect accounts", accounts);
             this.disconnectedWeb3();
         });
+    }
+
+    initContract = () => {
+
+        // Chargement du contract
+        const web3 = new Web3(Web3.givenProvider);
+        const myContract = new web3.eth.Contract(
+            jsonInterface,
+            "0xbe1dC92Fe08BBFAE31E2362bF2c66EdcEE2E2196"
+        );
+
+        // Sauvegarde dans une variable local du composant React
+        this.contract = myContract;
     }
 
     /**
@@ -56,11 +77,15 @@ class Vote extends Component {
      */
     connectToWeb3 = () => {
         this.ethereum.request({method: 'eth_requestAccounts'}).then((result) => {
+
             const state = {...this.state};
             state.isConnected.web3 = true;
             state.isConnected.web3Account = result;
             this.setState(state);
-            this.initEthereum();
+
+            this.initEthereumEvents();
+            this.initContract();
+
         }).catch((error) => {
             console.error(error);
         });
@@ -72,18 +97,12 @@ class Vote extends Component {
      */
     getQuestion = async () => {
 
-        // Chargement du contract
-        const web3 = new Web3(Web3.givenProvider);
-        const myContract = new web3.eth.Contract(
-            jsonInterface,
-            "0xbe1dC92Fe08BBFAE31E2362bF2c66EdcEE2E2196"
-        );
-
+        // Si Web3 est connecté
         const {web3Account} = this.state.isConnected;
         if (web3Account.length > 0) {
 
-            // Requete Ethereum
-            myContract.methods.question().call({from: web3Account[0]}).then((result) => {
+            // Exécution d'une requete sur le Contract Solidity
+            this.contract.methods.question().call({from: web3Account[0]}).then((result) => {
 
                 // Enregistre la question dans l'état du composant react
                 this.setQuestionState(result);
@@ -102,18 +121,13 @@ class Vote extends Component {
      * @returns {Promise<void>}
      */
     getAnswerChoices = async () => {
-        // Chargement du contract
-        const web3 = new Web3(Web3.givenProvider);
-        const myContract = new web3.eth.Contract(
-            jsonInterface,
-            "0xbe1dC92Fe08BBFAE31E2362bF2c66EdcEE2E2196"
-        );
 
+        // Si Web3 est connecté
         const {web3Account} = this.state.isConnected;
         if (web3Account.length > 0) {
 
-            // Requete Ethereum
-            myContract.methods.getAnswerChoices().call({from: web3Account[0]}).then((result) => {
+            // Exécution d'une requete sur le Contract Solidity
+            this.contract.methods.getAnswerChoices().call({from: web3Account[0]}).then((result) => {
 
                 console.log(result);
                 this.setAnswerChoicesState([result[0], result[1]]);
@@ -199,11 +213,13 @@ class Vote extends Component {
      * @returns {JSX.Element}
      */
     renderButtons() {
-        return (
-            <div>
-                <button onClick={this.readContractHandle}>Read Contract</button>
-            </div>
-        );
+        if (this.state.isConnected.web3) {
+            return (
+                <div>
+                    <button onClick={this.readContractHandle}>Read Contract</button>
+                </div>
+            );
+        }
     }
 
     /**
@@ -215,7 +231,7 @@ class Vote extends Component {
             return this.state.answerChoices.map((answerChoice, index) => {
                 return (
                     <div key={index}>
-                        <input value={index} type="radio" name="choice"  />
+                        <input value={index} type="radio" name="choice"/>
                         {answerChoice}
                     </div>
                 );

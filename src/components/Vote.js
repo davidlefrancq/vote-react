@@ -4,8 +4,14 @@ import jsonInterface from "./jsonInterface.json";
 
 class Vote extends Component {
 
+    // Variable ethereum
+    // Note : Ne doit pas faire partie du "State React" car il pourrait perturber le cycle de vie du composant React
     ethereum;
 
+    /**
+     * Constructeur
+     * @param props
+     */
     constructor(props) {
         super(props);
         this.state = {
@@ -14,6 +20,7 @@ class Vote extends Component {
                 web3Account: null,
             },
             question: null,
+            answerChoices: [],
         };
         this.ethereum = window.ethereum;
     }
@@ -84,8 +91,40 @@ class Vote extends Component {
             }).catch((error) => {
                 console.error(error);
             });
+
+            this.getAnswerChoices();
         }
     }
+
+
+    /**
+     * Intéroge le contract pour récupérer les réponses possible
+     * @returns {Promise<void>}
+     */
+    getAnswerChoices = async () => {
+        // Chargement du contract
+        const web3 = new Web3(Web3.givenProvider);
+        const myContract = new web3.eth.Contract(
+            jsonInterface,
+            "0xbe1dC92Fe08BBFAE31E2362bF2c66EdcEE2E2196"
+        );
+
+        const {web3Account} = this.state.isConnected;
+        if (web3Account.length > 0) {
+
+            // Requete Ethereum
+            myContract.methods.getAnswerChoices().call({from: web3Account[0]}).then((result) => {
+
+                console.log(result);
+                this.setAnswerChoicesState([result[0], result[1]]);
+
+            }).catch((error) => {
+                console.error(error);
+            });
+        }
+
+    }
+
 
     /**
      * Enregistre le changement de question dans l'état du composant React
@@ -97,7 +136,28 @@ class Vote extends Component {
         this.setState(state);
     }
 
+    /**
+     * Enregistre le changement des réponses proposées dans l'état du composant React
+     * @param responses
+     */
+    setAnswerChoicesState = (responses) => {
+        const state = {...this.state};
+        state.answerChoices = responses;
+        this.setState(state);
+    }
 
+    /**
+     * Exécuter les requetes de lecture du Contract Solidity
+     */
+    readContractHandle = () => {
+        this.getQuestion();
+        this.getAnswerChoices();
+    }
+
+    /**
+     * Rendu lorsque Web3JS est connecté
+     * @returns {JSX.Element}
+     */
     renderWeb3IsConnected() {
         if (this.state.isConnected.web3) {
             return (
@@ -109,6 +169,10 @@ class Vote extends Component {
         }
     }
 
+    /**
+     * Rendu du bouton de connexion Web3JS
+     * @returns {JSX.Element}
+     */
     renderWeb3ConnectionButton() {
         if (!this.state.isConnected.web3) {
             return (
@@ -117,6 +181,10 @@ class Vote extends Component {
         }
     }
 
+    /**
+     * Rendu les éléments d'interaction Web3JS (bouton, status de connexion)
+     * @returns {JSX.Element}
+     */
     renderWeb3Connection() {
         return (
             <div>
@@ -126,23 +194,50 @@ class Vote extends Component {
         );
     }
 
-    renderGetInfo() {
+    /**
+     * Rendu des boutons d'interaction avec le Contract Solidity
+     * @returns {JSX.Element}
+     */
+    renderButtons() {
         return (
             <div>
-                <button onClick={this.getQuestion}>Get Infos</button>
+                <button onClick={this.readContractHandle}>Read Contract</button>
             </div>
         );
     }
 
+    /**
+     * Rendu des réponses possible
+     * @returns {unknown[]}
+     */
+    renderAnswerChoices() {
+        if (this.state.answerChoices) {
+            return this.state.answerChoices.map((answerChoice, index) => {
+                return (
+                    <div key={index}>
+                        <input value={index} type="radio" name="choice"  />
+                        {answerChoice}
+                    </div>
+                );
+            });
+        }
+    }
+
+    /**
+     * Fonction de rendu appelé par defaut pas React
+     * @returns {JSX.Element}
+     */
     render() {
         return (
             <div>
                 {this.renderWeb3Connection()}
-                {this.renderGetInfo()}
-
+                {this.renderButtons()}
+                {this.state.question}
+                {this.renderAnswerChoices()}
             </div>
         );
     }
+
 }
 
 export default Vote;

@@ -1,6 +1,9 @@
 import React, {Component} from 'react';
 import Web3 from "web3";
 import jsonInterface from "./jsonInterface.json";
+import StringUtils from "../utils/StringUtils";
+
+const addressContract = "0xbe1dC92Fe08BBFAE31E2362bF2c66EdcEE2E2196";
 
 class Vote extends Component {
 
@@ -28,6 +31,7 @@ class Vote extends Component {
             },
             question: null,
             answerChoices: [],
+            transactionHash: null,
         };
 
         this.ethereum = window.ethereum;
@@ -55,11 +59,12 @@ class Vote extends Component {
         const web3 = new Web3(Web3.givenProvider);
         const myContract = new web3.eth.Contract(
             jsonInterface,
-            "0xbe1dC92Fe08BBFAE31E2362bF2c66EdcEE2E2196"
+            addressContract
         );
 
         // Sauvegarde dans une variable local du composant React
         this.contract = myContract;
+        this.initQuestion();
     }
 
     /**
@@ -110,8 +115,6 @@ class Vote extends Component {
             }).catch((error) => {
                 console.error(error);
             });
-
-            this.getAnswerChoices();
         }
     }
 
@@ -136,7 +139,42 @@ class Vote extends Component {
                 console.error(error);
             });
         }
+    }
 
+    setStateTransactionHash = (transactionHash) => {
+        const state = {...this.state};
+        state.transactionHash = transactionHash;
+        this.setState(state);
+    }
+
+    addAnswer = async (choice) => {
+
+        // Si Web3 est connecté
+        const {web3Account} = this.state.isConnected;
+        if (web3Account.length > 0) {
+
+            // Exécution d'une requete sur le Contract Solidity
+            this.contract.methods.addAnswer(choice).send({from: web3Account[0]}).then((result) => {
+
+                console.log(result);
+                const {
+                    blockHash,
+                    blockNumber,
+                    contractAddress,
+                    cumulativeGasUsed,
+                    from,
+                    gasUsd,
+                    status,
+                    to,
+                    transactionHash
+                } = result;
+
+                this.setStateTransactionHash(transactionHash);
+
+            }).catch((error) => {
+                console.error(error);
+            });
+        }
     }
 
 
@@ -163,7 +201,7 @@ class Vote extends Component {
     /**
      * Exécuter les requetes de lecture du Contract Solidity
      */
-    readContractHandle = () => {
+    initQuestion = () => {
         this.getQuestion();
         this.getAnswerChoices();
     }
@@ -176,7 +214,7 @@ class Vote extends Component {
         if (this.state.isConnected.web3) {
             return (
                 <div>
-                    <div>Account</div>
+                    <h2>Account</h2>
                     <div>{this.state.isConnected.web3Account}</div>
                 </div>
             );
@@ -190,7 +228,7 @@ class Vote extends Component {
     renderWeb3ConnectionButton() {
         if (!this.state.isConnected.web3) {
             return (
-                <button onClick={this.connectToWeb3}>Connection Web3</button>
+                <button className={"btn btn-outline-primary"} onClick={this.connectToWeb3}>Connection Web3</button>
             );
         }
     }
@@ -208,18 +246,21 @@ class Vote extends Component {
         );
     }
 
-    /**
-     * Rendu des boutons d'interaction avec le Contract Solidity
-     * @returns {JSX.Element}
-     */
-    renderButtons() {
-        if (this.state.isConnected.web3) {
+    submitHandle = (event) => {
+        event.preventDefault();
+        const choice = event.target.choice.value;
+        this.addAnswer(choice);
+    }
+
+    renderChoices() {
+        return this.state.answerChoices.map((answerChoice, index) => {
             return (
-                <div>
-                    <button onClick={this.readContractHandle}>Read Contract</button>
+                <div key={index} className={"ps-2 pe-2"}>
+                    <input className={"m-1"} value={index} type="radio" name="choice"/>
+                    {answerChoice}
                 </div>
             );
-        }
+        });
     }
 
     /**
@@ -227,15 +268,29 @@ class Vote extends Component {
      * @returns {unknown[]}
      */
     renderAnswerChoices() {
-        if (this.state.answerChoices) {
-            return this.state.answerChoices.map((answerChoice, index) => {
-                return (
-                    <div key={index}>
-                        <input value={index} type="radio" name="choice"/>
-                        {answerChoice}
+        if (this.state.answerChoices && this.state.answerChoices.length > 0) {
+            return (
+                <form onSubmit={this.submitHandle}>
+
+                    <div className={"d-flex justify-content-center"}>
+                        {this.renderChoices()}
                     </div>
-                );
-            });
+                    <button className={"btn btn-primary"} type={"submit"}>Send</button>
+                </form>
+            );
+        }
+    }
+
+    renderTransactionHash() {
+        if (this.state.transactionHash) {
+            return (
+                <div>
+                    <h2>Transaction</h2>
+                    <a href={`https://kovan.etherscan.io/tx/${this.state.transactionHash}`} target={"_blank"}>
+                        {StringUtils.addressMinimise(this.state.transactionHash)}
+                    </a>
+                </div>
+            )
         }
     }
 
@@ -245,11 +300,24 @@ class Vote extends Component {
      */
     render() {
         return (
-            <div>
-                {this.renderWeb3Connection()}
-                {this.renderButtons()}
-                {this.state.question}
-                {this.renderAnswerChoices()}
+            <div className={"container"}>
+                <div className={"row"}>
+                    <div className={"col"}>
+                        {this.renderWeb3Connection()}
+                    </div>
+                    <div className={"col"}>
+                        <div className={"row"}>
+                            <div className={"col"}>
+                                <h2>Question</h2>
+                                {this.state.question}
+                                {this.renderAnswerChoices()}
+                            </div>
+                            <div className={"col"}>
+                                {this.renderTransactionHash()}
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
         );
     }

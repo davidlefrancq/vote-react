@@ -1,7 +1,7 @@
 import React, {Component} from 'react';
 import AddressFormater from "../../utils/AddressFormater";
 import {SUCCESS, IN_PROGRESS, CANCELED} from "./bo/Transaction";
-import Explorers from "../../utils/Explorers";
+import Explorers from "../explorers/Explorers";
 
 class Transactions extends Component {
 

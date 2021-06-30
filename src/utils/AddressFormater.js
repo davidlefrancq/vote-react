@@ -1,12 +1,16 @@
 class AddressFormater {
-    static minimizer(address) {
-        let mini = "";
+    static minimizer(address){
+        console.log(address);
+        let miniAddress = "";
         if (address && address.length > 10) {
             const start = address.slice(0, 5);
+            console.log(start);
             const end = address.slice((address.length - 5), (address.length));
-            mini = start + "..." + end;
+            console.log(end);
+            miniAddress = start + "..." + end;
+            console.log(miniAddress);
         }
-        return mini;
+        return miniAddress;
     }
 }
 

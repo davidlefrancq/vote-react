@@ -1,5 +1,5 @@
 import React from 'react';
-import Chains from "../components/Chains/Chains";
+import Chains from "../chains/Chains";
 import {BsArrowUpRight, BsClipboard} from "react-icons/all";
 
 const Explorers = (props) => {

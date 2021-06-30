@@ -7,6 +7,7 @@ import Transactions from "./transactions/Transactions";
 import Chains from "./chains/Chains";
 import VotersList from "./VotersList";
 import Explorers from "./explorers/Explorers";
+import QuestionStatistics from "./statistics/QuestionStatistics";
 
 const addressContract = "0xc8BDE76aD7b7D2D3D378a8f335FEE4d1De8bF902";
 
@@ -504,6 +505,14 @@ class Vote extends Component {
         }
     }
 
+    renderStatistics() {
+        if (this.state.votersList && this.state.votersList.length > 0) {
+            return (
+                <QuestionStatistics items={this.state.votersList} answerChoices={this.state.answerChoices}/>
+            );
+        }
+    }
+
     /**
      * Fonction de rendu appelé par defaut pas React
      * @returns {JSX.Element}
@@ -521,6 +530,7 @@ class Vote extends Component {
                         {this.renderTransactions()}
                     </div>
                     <div className={"col"}>
+                        {this.renderStatistics()}
                     </div>
                 </div>
 

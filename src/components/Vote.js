@@ -3,7 +3,6 @@ import Web3 from "web3";
 import jsonInterface from "./jsonInterface.json";
 import StringUtils from "../utils/StringUtils";
 
-// const addressContract = "0xbe1dC92Fe08BBFAE31E2362bF2c66EdcEE2E2196";
 const addressContract = "0xc8BDE76aD7b7D2D3D378a8f335FEE4d1De8bF902";
 
 class Vote extends Component {
@@ -124,33 +123,30 @@ class Vote extends Component {
      * Intéroge le contract pour récupérer les réponses possible
      * @returns {Promise<void>}
      */
-    getAnswerChoices = async () => {
+    getAnswerChoices = () => {
 
         // Si Web3 est connecté
         const {web3Account} = this.state.isConnected;
         if (web3Account.length > 0) {
 
 
-            this.contract.methods.getNumberAnswerChoices().call({from: web3Account[0]}).then((num) => {
+            this.contract.methods.getNumberAnswerChoices().call({from: web3Account[0]}).then(async (num) => {
 
                 const number = Number.parseInt(num);
-                console.log(number);
                 const answerChoices = [];
-                for(let i = 0; i < number ; i++){
+                for (let i = 0; i < number; i++) {
 
-                    // Exécution d'une requete sur le Contract Solidity
-                    this.contract.methods.answerChoices(i).call({from: web3Account[0]}).then((result) => {
-
-                        console.log((number),result);
+                    try {
+                        // Exécution d'une requete sur le Contract Solidity
+                        const result = await this.contract.methods.answerChoices(i).call({from: web3Account[0]});
                         answerChoices.push(result);
-                        if(i == (number-1)){
-                            console.log(answerChoices);
+
+                        if (i == (number - 1)) {
                             this.setAnswerChoicesState(answerChoices);
                         }
-
-                    }).catch((error) => {
+                    } catch (error){
                         console.error(error);
-                    });
+                    }
                 }
 
             }).catch((error) => {
@@ -274,6 +270,7 @@ class Vote extends Component {
 
     renderChoices() {
         return this.state.answerChoices.map((answerChoice, index) => {
+            console.log(index, answerChoice);
             return (
                 <div key={index} className={"ps-2 pe-2"}>
                     <input className={"m-1"} value={index} type="radio" name="choice"/>

@@ -2,6 +2,9 @@ import React, {Component} from 'react';
 import Web3 from "web3";
 import jsonInterface from "./jsonInterface.json";
 import StringUtils from "../utils/StringUtils";
+import {CANCELED, SUCCESS, Transaction} from "./transactions/bo/Transaction";
+import Transactions from "./transactions/Transactions";
+import Chains from "./Chains/Chains";
 
 const addressContract = "0xc8BDE76aD7b7D2D3D378a8f335FEE4d1De8bF902";
 
@@ -25,16 +28,68 @@ class Vote extends Component {
         super(props);
 
         this.state = {
+            idChain: null,
             isConnected: {
                 web3: false,
                 web3Account: null,
             },
             question: null,
             answerChoices: [],
-            transactionHash: null,
+            // transactionHash: null,
+            transactions: [],
+            transactionInProgress: false,
+            listVote: [],
         };
+    }
 
+    setTransactionInProgress = (value) => {
+        const state = {...this.state};
+        state.transactionInProgress = value;
+        this.setState(state);
+    }
+
+    componentDidMount() {
+        this.init();
+    }
+
+    init() {
         this.ethereum = window.ethereum;
+        this.initStateChainId();
+    }
+
+    initListVote = async () => {
+        const nbResponse = await this.contract.methods.nbResponse().call({from: this.state.isConnected.web3Account[0]});
+        // console.log(nbResponse);
+
+        const participants = [];
+        for (let i = 0; i < nbResponse; i++) {
+            const participant = await this.contract.methods.listResponces(i).call({from: this.state.isConnected.web3Account[0]});
+            participants.push(participant);
+        }
+        // console.log(participants);
+
+        const responses = [];
+        let i =0;
+        for (const key in participants) {
+            const participant = participants[key];
+            const response = await this.contract.methods.responses(participant).call({from: this.state.isConnected.web3Account[0]});
+            responses[i] = {...response, address:participant};
+            i++;
+        }
+        console.log("initListVote",responses.length,responses);
+
+        const state = {...this.state};
+        state.listVote = responses;
+        this.setState(state);
+    }
+
+
+    initStateChainId = async () => {
+        const chainId = await window.ethereum.request({method: 'eth_chainId'});
+
+        const state = {...this.state};
+        state.chainId = chainId;
+        this.setState(state);
     }
 
     /**
@@ -42,13 +97,11 @@ class Vote extends Component {
      */
     initEthereumEvents = () => {
         this.ethereum.on('accountsChanged', (accounts) => {
-            console.log("accountsChanged accounts", accounts, this.ethereum.isConnected());
             if (this.ethereum.isConnected()) {
                 this.connectToWeb3();
             }
         });
         this.ethereum.on('disconnect', (accounts) => {
-            console.log("disconnect accounts", accounts);
             this.disconnectedWeb3();
         });
     }
@@ -65,6 +118,7 @@ class Vote extends Component {
         // Sauvegarde dans une variable local du composant React
         this.contract = myContract;
         this.initQuestion();
+        this.initListVote();
     }
 
     /**
@@ -129,7 +183,6 @@ class Vote extends Component {
         const {web3Account} = this.state.isConnected;
         if (web3Account.length > 0) {
 
-
             this.contract.methods.getNumberAnswerChoices().call({from: web3Account[0]}).then(async (num) => {
 
                 const number = Number.parseInt(num);
@@ -144,7 +197,8 @@ class Vote extends Component {
                         if (i == (number - 1)) {
                             this.setAnswerChoicesState(answerChoices);
                         }
-                    } catch (error){
+
+                    } catch (error) {
                         console.error(error);
                     }
                 }
@@ -163,7 +217,17 @@ class Vote extends Component {
         this.setState(state);
     }
 
+    addTransaction = (transaction) => {
+        const state = {...this.state};
+        state.transactions.push(transaction);
+        this.setState(state);
+    }
+
     addAnswer = async (choice) => {
+
+        const transaction = new Transaction(this.state.isConnected.web3Account[0], choice);
+        this.addTransaction(transaction);
+        this.setTransactionInProgress(true);
 
         // Si Web3 est connecté
         const {web3Account} = this.state.isConnected;
@@ -172,7 +236,6 @@ class Vote extends Component {
             // Exécution d'une requete sur le Contract Solidity
             this.contract.methods.addAnswer(choice).send({from: web3Account[0]}).then((result) => {
 
-                console.log(result);
                 const {
                     blockHash,
                     blockNumber,
@@ -185,9 +248,13 @@ class Vote extends Component {
                     transactionHash
                 } = result;
 
-                this.setStateTransactionHash(transactionHash);
+                // this.setStateTransactionHash(transactionHash);
+                transaction.status = SUCCESS;
+                this.setTransactionInProgress(false);
 
             }).catch((error) => {
+                transaction.status = CANCELED;
+                this.setTransactionInProgress(false);
                 console.error(error);
             });
         }
@@ -270,7 +337,6 @@ class Vote extends Component {
 
     renderChoices() {
         return this.state.answerChoices.map((answerChoice, index) => {
-            console.log(index, answerChoice);
             return (
                 <div key={index} className={"ps-2 pe-2"}>
                     <input className={"m-1"} value={index} type="radio" name="choice"/>
@@ -292,7 +358,9 @@ class Vote extends Component {
                     <div className={"d-flex justify-content-center"}>
                         {this.renderChoices()}
                     </div>
-                    <button className={"btn btn-primary"} type={"submit"}>Send</button>
+                    <button className={"btn btn-primary"} type={"submit"}
+                            disabled={this.state.transactionInProgress}>Send
+                    </button>
                 </form>
             );
         }
@@ -308,6 +376,34 @@ class Vote extends Component {
                     </a>
                 </div>
             )
+        }
+    }
+
+    renderTransactions() {
+        if (this.state.chainId && this.state.transactions && this.state.transactions.length > 0) {
+            const chain = Chains.getChain(this.state.chainId)
+            return (
+                <Transactions transactions={this.state.transactions} chain={chain}/>
+            );
+        }
+    }
+
+    renderVote(vote, index) {
+        return (
+            <div key={index} className={"border border-dark bg-dark text-white"}>
+                {vote.address}
+                //
+                {this.state.answerChoices[vote.choice]}
+            </div>
+        );
+    }
+
+    renderListVote() {
+        const {listVote} = this.state;
+        if(listVote.length > 0){
+            return listVote.map((vote,index) => {
+                return this.renderVote(vote,index);
+            });
         }
     }
 
@@ -330,7 +426,11 @@ class Vote extends Component {
                                 {this.renderAnswerChoices()}
                             </div>
                             <div className={"col"}>
-                                {this.renderTransactionHash()}
+                                {/*{this.renderTransactionHash()}*/}
+                                {this.renderTransactions()}
+                            </div>
+                            <div className={"col"}>
+                                {this.renderListVote()}
                             </div>
                         </div>
                     </div>

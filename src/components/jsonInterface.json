@@ -7,9 +7,9 @@
   {
     "inputs": [
       {
-        "internalType": "int256",
+        "internalType": "uint256",
         "name": "_value",
-        "type": "int256"
+        "type": "uint256"
       }
     ],
     "name": "addAnswer",
@@ -18,18 +18,51 @@
     "type": "function"
   },
   {
-    "inputs": [],
-    "name": "getAnswerChoices",
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "name": "answerChoices",
     "outputs": [
       {
         "internalType": "string",
         "name": "",
         "type": "string"
-      },
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "getNumberAnswerChoices",
+    "outputs": [
       {
-        "internalType": "string",
+        "internalType": "uint256",
         "name": "",
-        "type": "string"
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "name": "listResponces",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
       }
     ],
     "stateMutability": "view",
@@ -54,7 +87,7 @@
     "outputs": [
       {
         "internalType": "string",
-        "name": "questionToAsk",
+        "name": "",
         "type": "string"
       }
     ],
@@ -64,22 +97,22 @@
   {
     "inputs": [
       {
-        "internalType": "uint256",
+        "internalType": "address",
         "name": "",
-        "type": "uint256"
+        "type": "address"
       }
     ],
     "name": "responses",
     "outputs": [
       {
-        "internalType": "address",
-        "name": "author",
-        "type": "address"
+        "internalType": "uint256",
+        "name": "choice",
+        "type": "uint256"
       },
       {
-        "internalType": "int256",
-        "name": "choice",
-        "type": "int256"
+        "internalType": "bool",
+        "name": "active",
+        "type": "bool"
       }
     ],
     "stateMutability": "view",

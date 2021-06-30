@@ -3,7 +3,8 @@ import Web3 from "web3";
 import jsonInterface from "./jsonInterface.json";
 import StringUtils from "../utils/StringUtils";
 
-const addressContract = "0xbe1dC92Fe08BBFAE31E2362bF2c66EdcEE2E2196";
+// const addressContract = "0xbe1dC92Fe08BBFAE31E2362bF2c66EdcEE2E2196";
+const addressContract = "0xc8BDE76aD7b7D2D3D378a8f335FEE4d1De8bF902";
 
 class Vote extends Component {
 
@@ -129,15 +130,34 @@ class Vote extends Component {
         const {web3Account} = this.state.isConnected;
         if (web3Account.length > 0) {
 
-            // Exécution d'une requete sur le Contract Solidity
-            this.contract.methods.getAnswerChoices().call({from: web3Account[0]}).then((result) => {
 
-                console.log(result);
-                this.setAnswerChoicesState([result[0], result[1]]);
+            this.contract.methods.getNumberAnswerChoices().call({from: web3Account[0]}).then((num) => {
+
+                const number = Number.parseInt(num);
+                console.log(number);
+                const answerChoices = [];
+                for(let i = 0; i < number ; i++){
+
+                    // Exécution d'une requete sur le Contract Solidity
+                    this.contract.methods.answerChoices(i).call({from: web3Account[0]}).then((result) => {
+
+                        console.log((number),result);
+                        answerChoices.push(result);
+                        if(i == (number-1)){
+                            console.log(answerChoices);
+                            this.setAnswerChoicesState(answerChoices);
+                        }
+
+                    }).catch((error) => {
+                        console.error(error);
+                    });
+                }
 
             }).catch((error) => {
                 console.error(error);
             });
+
+
         }
     }
 

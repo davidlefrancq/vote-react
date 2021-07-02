@@ -8,8 +8,9 @@ import Chains from "./chains/Chains";
 import VotersList from "./VotersList";
 import Explorers from "./explorers/Explorers";
 import QuestionStatistics from "./statistics/QuestionStatistics";
+import VoteAdministrator from "./admin/VoteAdministrator";
 
-const addressContract = "0xc8BDE76aD7b7D2D3D378a8f335FEE4d1De8bF902";
+const addressContract = "0x967d1E6e49DE45e28434c182bfc5507bcA2650E5";
 
 class Vote extends Component {
 
@@ -39,6 +40,9 @@ class Vote extends Component {
             transactions: [],
             transactionInProgress: false,
             votersList: [],
+            voteIsOpened: false,
+            owner: null,
+            adminDisplay: "d-none",
         };
     }
 
@@ -181,6 +185,8 @@ class Vote extends Component {
 
         // Sauvegarde dans une variable local du composant React
         this.contract = myContract;
+        this.initVoteIsOpened();
+        this.initOwner();
         this.initQuestion();
         this.initVotersList();
     }
@@ -238,6 +244,82 @@ class Vote extends Component {
     }
 
     /**
+     * Enregistrer l'état d'ouverture au vote
+     * @param value
+     */
+    setStateVoteIsOpened = (isActive) => {
+        const state = {...this.state};
+        state.voteIsOpened = isActive;
+        this.setState(state);
+    }
+
+    /**
+     * Récupérer l'état du Contract sur d'ouverture des cotes
+     */
+    initVoteIsOpened = () => {
+
+        // Si Web3 est connecté
+        const {accounts} = this.state;
+        if (accounts.length > 0) {
+
+            // Exécution d'une requete sur le Contract Solidity
+            this.contract.methods.isActive().call({from: accounts[0]}).then((isActive) => {
+
+                // Enregistre l'état d'ouverture des votes du Contract dans l'état du composant react
+                this.setStateVoteIsOpened(isActive);
+
+            }).catch((error) => {
+                console.error(error);
+            });
+        }
+    }
+
+    setStateOwner = (owner) => {
+        const state = {...this.state};
+        state.owner = owner;
+        this.setState(state);
+    }
+
+    initOwner = () => {
+
+        // Si Web3 est connecté
+        const {accounts} = this.state;
+        if (accounts.length > 0) {
+
+            // Exécution d'une requete sur le Contract Solidity
+            this.contract.methods.owner().call({from: accounts[0]}).then((owner) => {
+
+                // Enregistre le propriétaire du Contract dans l'état du composant react
+                this.setStateOwner(owner);
+
+            }).catch((error) => {
+                console.error(error);
+            });
+        }
+    }
+
+    /**
+     * Dir si l'utilisateur est le propriétaire du contract
+     * @returns {boolean}
+     */
+    isOwner() {
+        let result = false;
+        const {accounts} = this.state;
+
+        for (const key in accounts) {
+            const account = accounts[key];
+            const owner = this.state.owner ? this.state.owner.toLowerCase() : "";
+
+            if (account && account == owner) {
+                result = true;
+                break;
+            }
+        }
+
+        return result;
+    }
+
+    /**
      * Intéroge le contract pour récupérer la question
      * @returns {Promise<void>}
      */
@@ -270,7 +352,7 @@ class Vote extends Component {
         const {accounts} = this.state;
         if (accounts.length > 0) {
 
-            this.contract.methods.getNumberAnswerChoices().call({from: accounts[0]}).then(async (num) => {
+            this.contract.methods.nbAnswerChoices().call({from: accounts[0]}).then(async (num) => {
 
                 const number = Number.parseInt(num);
                 const answerChoices = [];
@@ -337,6 +419,11 @@ class Vote extends Component {
         }
     }
 
+    deleteStateAnswerChoice = (index) => {
+        const state = {...this.state}
+        state.answerChoices.splice(index, 1);
+        this.setState(state);
+    }
 
     /**
      * Enregistre le changement de question dans l'état du composant React
@@ -358,12 +445,44 @@ class Vote extends Component {
         this.setState(state);
     }
 
+    addAnswerChoiceState = (answerChoice) => {
+        const state = {...this.state};
+        state.answerChoices.push(answerChoice);
+        this.setState(state);
+    }
+
     /**
      * Exécuter les requetes de lecture du Contract Solidity
      */
     initQuestion = () => {
         this.getQuestion();
         this.getAnswerChoices();
+    }
+
+    adminHandle = () => {
+        const state = {...this.state};
+        if (state.adminDisplay == "d-none") {
+            state.adminDisplay = "";
+        } else {
+            state.adminDisplay = "d-none";
+        }
+        this.setState(state);
+    }
+
+    renderAdminMenu() {
+        const isOwner = this.isOwner();
+        if (isOwner) {
+            return (
+                <div className={"text-start bg-white"} style={{position: "absolute", top: 5, left: 0, zIndex: 999}}>
+                    <button
+                        className={"btn btn-outline-danger"}
+                        onClick={this.adminHandle}
+                    >
+                        Admin
+                    </button>
+                </div>
+            );
+        }
     }
 
     /**
@@ -376,7 +495,10 @@ class Vote extends Component {
             const chain = Chains.getChain(this.state.chainId);
 
             return (
-                <div className={"p-3"}>
+                <div className={"p-3"} style={{position: "relative"}}>
+
+                    {this.renderAdminMenu()}
+
                     <h2>Account</h2>
                     <div className={"d-flex justify-content-center"}>
                         <div className={"pb-0 pt-2"}>
@@ -441,9 +563,29 @@ class Vote extends Component {
         });
     }
 
+    renderButtonSensAnswer() {
+        if (this.state.voteIsOpened) {
+            return (
+                <button
+                    className={"btn btn-primary"}
+                    type={"submit"}
+                    disabled={this.state.transactionInProgress}
+                >
+                    Send
+                </button>
+            );
+        } else {
+            return (
+                <div className={"border border-danger rounded-3 p-1"}>
+                    <span style={{fontWeight: "bold"}}>Voting disabled !</span>
+                </div>
+            );
+        }
+    }
+
     /**
      * Rendu des réponses possible
-     * @returns {unknown[]}
+     * @returns {JSX.Element}
      */
     renderAnswerChoices() {
         if (this.state.answerChoices && this.state.answerChoices.length > 0) {
@@ -453,9 +595,7 @@ class Vote extends Component {
                     <div className={"d-flex justify-content-center"}>
                         {this.renderChoices()}
                     </div>
-                    <button className={"btn btn-primary"} type={"submit"}
-                            disabled={this.state.transactionInProgress}>Send
-                    </button>
+                    {this.renderButtonSensAnswer()}
                 </form>
             );
         }
@@ -513,6 +653,28 @@ class Vote extends Component {
         }
     }
 
+    renderAdmin = () => {
+        const isOwner = this.isOwner();
+        if (this.state.isConnected && isOwner) {
+            return (
+                <div
+                    className={`bg-white p-3 shadow ${this.state.adminDisplay}`}
+                    style={{position: "absolute", top: 15, left: 15}}
+                >
+                    <VoteAdministrator
+                        contract={this.contract}
+                        account={this.state.accounts[0]}
+                        answerChoices={this.state.answerChoices}
+                        deleteAnswerChoice={this.deleteStateAnswerChoice}
+                        addAnswerChoice={this.addAnswerChoiceState}
+                        setQuestion={this.setQuestionState}
+                        setVoteIsOpened={this.setStateVoteIsOpened}
+                    />
+                </div>
+            );
+        }
+    }
+
     /**
      * Fonction de rendu appelé par defaut pas React
      * @returns {JSX.Element}
@@ -522,8 +684,9 @@ class Vote extends Component {
             <div className={"container mt-3"}>
 
                 <div className={"row shadow"}>
-                    <div className={"col"}>
+                    <div className={"col"} style={{position: "relative"}}>
                         {this.renderWeb3Connection()}
+                        {this.renderAdmin()}
                     </div>
                     <div className={"col"}>
                         {this.renderQuestion()}

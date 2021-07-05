@@ -166,6 +166,19 @@ class Vote extends Component {
                 this.connectToWeb3();
             }
         });
+
+        this.ethereum.on('chainChanged', (accounts) => {
+            if (this.ethereum.isConnected()) {
+                this.connectToWeb3();
+            }
+        });
+
+        this.ethereum.on('accountsChanged', (accounts) => {
+            if (this.ethereum.isConnected()) {
+                this.connectToWeb3();
+            }
+        });
+
         this.ethereum.on('disconnect', (accounts) => {
             this.disconnectedWeb3();
         });

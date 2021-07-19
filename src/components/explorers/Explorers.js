@@ -9,7 +9,7 @@ const Explorers = (props) => {
 
     const copyToClipboard = (text) => {
         navigator.permissions.query({name: "clipboard-write"}).then(result => {
-            if (result.state == "granted" || result.state == "prompt") {
+            if (result.state === "granted" || result.state === "prompt") {
 
                 navigator.clipboard.writeText(text).then(function () {
                     /* clipboard successfully set */
@@ -57,6 +57,7 @@ const Explorers = (props) => {
                    className={`btn btn-link ${shadowClass} p-1 rounded-3 h-100`}
                    style={{marginLeft: 5}}
                    target={"_blank"}
+                   rel={"noreferrer"}
                 >
                     <BsArrowUpRight size={size}/>
                 </a>
@@ -93,6 +94,7 @@ const Explorers = (props) => {
                         className={`btn btn-link ${shadowClass} p-1 rounded-3 h-100`}
                         style={{marginLeft: 5}}
                         target={"_blank"}
+                        rel={"noreferrer"}
                     >
                         <BsArrowUpRight size={size}/>
                     </a>

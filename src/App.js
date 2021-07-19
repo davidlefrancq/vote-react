@@ -1,4 +1,3 @@
-import logo from './logo.svg';
 import './App.css';
 import Vote from "./components/Vote";
 import {GiJigsawBox} from "react-icons/all";

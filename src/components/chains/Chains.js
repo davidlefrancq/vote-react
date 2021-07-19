@@ -12,7 +12,7 @@ class Chains {
 
         for (const key in chains) {
             const item = chains[key];
-            if (item.chainId == id) {
+            if (item.chainId === id) {
                 result = item;
                 break;
             }

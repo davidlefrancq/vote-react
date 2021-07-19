@@ -36,9 +36,9 @@ class Transactions extends Component {
     renderStatus(status){
         return (
             <div className={"text-center"}>
-                {status == IN_PROGRESS ? this.renderSnipper() : ""}
-                {status == SUCCESS ? this.renderSuccessStatus() : ""}
-                {status == CANCELED ? this.renderCancelStatus() : ""}
+                {status === IN_PROGRESS ? this.renderSnipper() : ""}
+                {status === SUCCESS ? this.renderSuccessStatus() : ""}
+                {status === CANCELED ? this.renderCancelStatus() : ""}
             </div>
         );
     }

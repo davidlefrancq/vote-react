@@ -17,7 +17,7 @@ class QuestionStatistics extends Component {
     }
 
     componentDidUpdate(prevProps, prevState, snapshot) {
-        if (prevProps.items.length != this.props.items.length) {
+        if (prevProps.items.length !== this.props.items.length) {
             this.initValues();
         }
     }

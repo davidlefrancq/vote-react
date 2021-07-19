@@ -323,7 +323,7 @@ class Vote extends Component {
             const account = accounts[key];
             const owner = this.state.owner ? this.state.owner.toLowerCase() : "";
 
-            if (account && account == owner) {
+            if (account && account === owner) {
                 result = true;
                 break;
             }
@@ -376,7 +376,7 @@ class Vote extends Component {
                         const result = await this.contract.methods.answerChoices(i).call({from: accounts[0]});
                         answerChoices.push(result);
 
-                        if (i == (number - 1)) {
+                        if (i === (number - 1)) {
                             this.setAnswerChoicesState(answerChoices);
                         }
 
@@ -474,7 +474,7 @@ class Vote extends Component {
 
     adminHandle = () => {
         const state = {...this.state};
-        if (state.adminDisplay == "d-none") {
+        if (state.adminDisplay === "d-none") {
             state.adminDisplay = "";
         } else {
             state.adminDisplay = "d-none";

@@ -60,7 +60,7 @@ class QuestionStatistics extends Component {
     render() {
         return (
             <div className={"p-3"}>
-                <h2>Tatistics</h2>
+                <h2>Statistics</h2>
                 {this.renderQuestionBarChart()}
             </div>
         );

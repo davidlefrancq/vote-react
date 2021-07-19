@@ -57,7 +57,7 @@ class Chains {
     static getTestnet(chain){
         let result = null;
 
-        if(chain.network){
+        if(chain && chain.network){
             result = chain.network;
         }
 
